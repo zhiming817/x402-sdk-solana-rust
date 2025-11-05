@@ -24,6 +24,9 @@ Cargo.lock
 .env
 .env.*
 !.env.example
+!.env_client.example
+!.env_server.example
+!.env_facilitator.example
 
 # 日志文件
 *.log
