@@ -1,6 +1,6 @@
 [package]
 name = "x402-sdk-solana-rust"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["zhiming817<zhiming817@gmail.com>"]
 description = "Rust SDK for X402 payment protocol on Solana - enabling pay-per-use APIs with automatic payment handling"
