@@ -1,0 +1,100 @@
+# Rust 编译输出
+/target/
+**/*.rs.bk
+*.pdb
+
+# Cargo lock file (对于库项目通常不提交)
+# 如果是应用程序，可以注释掉这一行
+Cargo.lock
+
+# 编译缓存
+/target/
+**/target/
+
+# IDE 和编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.iml
+
+# 环境变量文件
+.env
+.env.*
+!.env.example
+
+# 日志文件
+*.log
+
+# 测试覆盖率
+tarpaulin-report.html
+cobertura.xml
+
+# Rust 文档
+/doc/
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+
+# 私钥和敏感信息
+*.json
+!package.json
+!tsconfig.json
+*.key
+*.pem
+*-key.txt
+wallet*.json
+
+# Mac 特定
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows 特定
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux 特定
+*~
+
+# Backup files
+*.bak
+*.backup
+
+# Debug files
+debug/
+*.dSYM/
+
+# 构建产物
+*.o
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Flamegraph
+flamegraph.svg
+perf.data
+perf.data.old
+
+# Benchmark results
+bench_results/
+
+# Examples 输出
+examples/*.out
+
+# 文档草稿（我们创建的）
+*_NEW.md
+COMPLETION_SUMMARY.md
+PROJECT_STRUCTURE.md
+QUICK_START.md
+
+# Solana 测试
+test-ledger/
+test-wallet.json
+.anchor/
