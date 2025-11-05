@@ -40,10 +40,28 @@ pub struct TokenConfig {
 }
 
 /// Facilitator Configuration
-#[derive(Debug, Clone)]
 pub struct FacilitatorConfig {
     pub url: String,
     pub create_auth_headers: Option<Box<dyn Fn() -> AuthHeaders + Send + Sync>>,
+}
+
+impl Clone for FacilitatorConfig {
+    fn clone(&self) -> Self {
+        Self {
+            url: self.url.clone(),
+            // Cannot clone function pointer, set to None
+            create_auth_headers: None,
+        }
+    }
+}
+
+impl std::fmt::Debug for FacilitatorConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FacilitatorConfig")
+            .field("url", &self.url)
+            .field("create_auth_headers", &self.create_auth_headers.is_some())
+            .finish()
+    }
 }
 
 /// Authentication Headers

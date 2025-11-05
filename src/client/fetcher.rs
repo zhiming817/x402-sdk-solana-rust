@@ -57,10 +57,31 @@ impl Fetcher {
 
             // Verify payment amount doesn't exceed max_value
             if let Some(max) = self.max_value {
-                let amount: u64 = requirements
-                    .max_amount_required
-                    .parse()
-                    .map_err(|e| X402Error::InvalidInput(format!("Invalid amount: {}", e)))?;
+                // Parse amount using the same logic as in create_payment
+                let amount: u64 = if requirements.max_amount_required.contains('.') {
+                    // Decimal format (e.g., "0.0018" SOL or tokens)
+                    let decimal_amount: f64 = requirements
+                        .max_amount_required
+                        .parse()
+                        .map_err(|e| X402Error::InvalidInput(format!("Invalid decimal amount: {}", e)))?;
+                    
+                    // Determine decimals based on token or SOL
+                    let decimals = if let Some(token_decimals) = requirements.token_decimals {
+                        token_decimals as u32
+                    } else {
+                        9 // SOL has 9 decimals (lamports)
+                    };
+                    
+                    // Convert to atomic units
+                    (decimal_amount * 10_f64.powi(decimals as i32)) as u64
+                } else {
+                    // Already in atomic units
+                    requirements
+                        .max_amount_required
+                        .parse()
+                        .map_err(|e| X402Error::InvalidInput(format!("Invalid amount: {}", e)))?
+                };
+                
                 if amount > max {
                     return Err(X402Error::PaymentAmountExceeded {
                         expected: max,
@@ -141,11 +162,30 @@ impl Fetcher {
 
         let tx_builder = TransactionBuilder::new(rpc_url);
 
-        // Parse amount
-        let amount: u64 = requirements
-            .max_amount_required
-            .parse()
-            .map_err(|e| X402Error::InvalidInput(format!("Invalid amount: {}", e)))?;
+        // Parse amount - handle both decimal (e.g., "0.0018") and atomic units (e.g., "1800000")
+        let amount: u64 = if requirements.max_amount_required.contains('.') {
+            // Decimal format (e.g., "0.0018" SOL or tokens)
+            let decimal_amount: f64 = requirements
+                .max_amount_required
+                .parse()
+                .map_err(|e| X402Error::InvalidInput(format!("Invalid decimal amount: {}", e)))?;
+            
+            // Determine decimals based on token or SOL
+            let decimals = if let Some(token_decimals) = requirements.token_decimals {
+                token_decimals as u32
+            } else {
+                9 // SOL has 9 decimals (lamports)
+            };
+            
+            // Convert to atomic units
+            (decimal_amount * 10_f64.powi(decimals as i32)) as u64
+        } else {
+            // Already in atomic units
+            requirements
+                .max_amount_required
+                .parse()
+                .map_err(|e| X402Error::InvalidInput(format!("Invalid amount: {}", e)))?
+        };
 
         // Parse recipient address
         let to_pubkey = requirements.pay_to.parse().map_err(|e| {

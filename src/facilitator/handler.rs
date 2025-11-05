@@ -31,7 +31,7 @@ impl Handler {
             .unwrap_or(DEFAULT_FACILITATOR_URL)
     }
 
-    /// Verify a payment payload against payment requirements
+    /// Verify a payment before settling
     pub async fn verify(
         &self,
         payload: &PaymentPayload,
