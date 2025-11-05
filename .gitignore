@@ -101,3 +101,6 @@ QUICK_START.md
 test-ledger/
 test-wallet.json
 .anchor/
+
+# TypeScript SDK 参考代码（不需要发布）
+x402-sdk-for-solana/
