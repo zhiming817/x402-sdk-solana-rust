@@ -15,6 +15,7 @@ pub enum X402Error {
     DeserializationError(String),
     SolanaError(String),
     HttpError(String),
+    NotImplemented(String),
 }
 
 impl fmt::Display for X402Error {
@@ -37,6 +38,7 @@ impl fmt::Display for X402Error {
             X402Error::DeserializationError(msg) => write!(f, "Deserialization error: {}", msg),
             X402Error::SolanaError(msg) => write!(f, "Solana error: {}", msg),
             X402Error::HttpError(msg) => write!(f, "HTTP error: {}", msg),
+            X402Error::NotImplemented(msg) => write!(f, "Not implemented: {}", msg),
         }
     }
 }

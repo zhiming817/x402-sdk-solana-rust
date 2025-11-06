@@ -192,12 +192,41 @@ impl Fetcher {
             X402Error::InvalidInput(format!("Invalid recipient address: {}", e))
         })?;
 
-        // Create transaction
-        let transaction = tx_builder.create_payment_transaction(
-            self.wallet.keypair(),
-            &to_pubkey,
-            amount,
-        )?;
+        // Create transaction - choose between SOL transfer or Token transfer
+        let transaction = if let Some(token_address) = &requirements.token_address {
+            // Token transfer (USDC, SPL Token, etc.)
+            println!("🪙 Token payment requested:");
+            println!("  Token: {} ({})", 
+                requirements.token_name.as_deref().unwrap_or("Unknown"),
+                token_address
+            );
+            println!("  Amount: {} (atomic units)", amount);
+            println!("  Decimals: {}", requirements.token_decimals.unwrap_or(9));
+            
+            let token_pubkey = token_address.parse().map_err(|e| {
+                X402Error::InvalidInput(format!("Invalid token address: {}", e))
+            })?;
+            
+            let decimals = requirements.token_decimals.unwrap_or(9);
+            
+            tx_builder.create_spl_token_payment(
+                self.wallet.keypair(),
+                &to_pubkey,
+                &token_pubkey,
+                amount,
+                decimals,
+            )?
+        } else {
+            // SOL transfer
+            println!("💰 SOL payment requested:");
+            println!("  Amount: {} lamports ({} SOL)", amount, amount as f64 / 1_000_000_000.0);
+            
+            tx_builder.create_payment_transaction(
+                self.wallet.keypair(),
+                &to_pubkey,
+                amount,
+            )?
+        };
 
         // Serialize transaction to base64
         let signed_tx = TransactionBuilder::serialize_transaction(&transaction)?;

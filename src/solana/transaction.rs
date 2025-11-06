@@ -77,6 +77,30 @@ impl TransactionBuilder {
         Ok(transaction)
     }
 
+    /// Create a simple SPL token transfer by token mint address
+    /// This is a simplified version that derives the associated token accounts
+    pub fn create_spl_token_payment(
+        &self,
+        _from: &Keypair,
+        _to_owner: &Pubkey,
+        _token_mint: &Pubkey,
+        _amount: u64,
+        _decimals: u8,
+    ) -> Result<SolanaTransaction, X402Error> {
+        // For now, use a simplified approach
+        // In production, you would:
+        // 1. Get or create associated token accounts for both sender and receiver
+        // 2. Build proper SPL token transfer instruction with spl_token crate
+        
+        // Placeholder: For this implementation, we'll return an error indicating
+        // that full SPL token support requires additional setup
+        Err(X402Error::NotImplemented(
+            "Full SPL Token transfer requires associated token account setup. \
+             Please ensure both sender and receiver have associated token accounts \
+             for the token mint.".to_string()
+        ))
+    }
+
     /// Sign a transaction
     pub fn sign_transaction(
         &self,
