@@ -78,27 +78,89 @@ impl TransactionBuilder {
     }
 
     /// Create a simple SPL token transfer by token mint address
-    /// This is a simplified version that derives the associated token accounts
+    /// This creates a complete token transfer with automatic ATA creation if needed
     pub fn create_spl_token_payment(
         &self,
-        _from: &Keypair,
-        _to_owner: &Pubkey,
-        _token_mint: &Pubkey,
-        _amount: u64,
-        _decimals: u8,
+        from: &Keypair,
+        to_owner: &Pubkey,
+        token_mint: &Pubkey,
+        amount: u64,
+        decimals: u8,
     ) -> Result<SolanaTransaction, X402Error> {
-        // For now, use a simplified approach
-        // In production, you would:
-        // 1. Get or create associated token accounts for both sender and receiver
-        // 2. Build proper SPL token transfer instruction with spl_token crate
+        use spl_associated_token_account::get_associated_token_address;
+        use spl_token::instruction::transfer_checked;
         
-        // Placeholder: For this implementation, we'll return an error indicating
-        // that full SPL token support requires additional setup
-        Err(X402Error::NotImplemented(
-            "Full SPL Token transfer requires associated token account setup. \
-             Please ensure both sender and receiver have associated token accounts \
-             for the token mint.".to_string()
-        ))
+        let payer = from.pubkey();
+        
+        // 1. Derive associated token accounts
+        let sender_ata = get_associated_token_address(&payer, token_mint);
+        let receiver_ata = get_associated_token_address(to_owner, token_mint);
+        
+        println!("  💳 Sender ATA: {}", sender_ata);
+        println!("  💳 Receiver ATA: {}", receiver_ata);
+        
+        let mut instructions = Vec::new();
+        
+        // 2. Check if sender has the token account
+        match self.rpc_client.get_account(&sender_ata) {
+            Ok(_) => {
+                println!("  ✓ Sender ATA exists");
+            }
+            Err(e) => {
+                return Err(X402Error::SolanaError(format!(
+                    "Sender doesn't have token account for this token. Please create it first. Error: {}", e
+                )));
+            }
+        }
+        
+        // 3. Check if receiver's ATA exists, create if not
+        match self.rpc_client.get_account(&receiver_ata) {
+            Ok(_) => {
+                println!("  ✓ Receiver ATA exists");
+            }
+            Err(_) => {
+                println!("  ⚠️  Receiver ATA doesn't exist, creating...");
+                
+                // Create associated token account for receiver
+                let create_ata_ix = spl_associated_token_account::instruction::create_associated_token_account(
+                    &payer,           // fee payer
+                    to_owner,         // wallet address
+                    token_mint,       // token mint
+                    &spl_token::id(), // token program
+                );
+                instructions.push(create_ata_ix);
+            }
+        }
+        
+        // 4. Create transfer instruction
+        let transfer_ix = transfer_checked(
+            &spl_token::id(),  // token program
+            &sender_ata,       // source
+            token_mint,        // mint
+            &receiver_ata,     // destination
+            &payer,            // authority
+            &[],               // signers (empty because authority will sign)
+            amount,            // amount
+            decimals,          // decimals
+        )
+        .map_err(|e| X402Error::SolanaError(format!("Failed to create transfer instruction: {}", e)))?;
+        
+        instructions.push(transfer_ix);
+        
+        // 5. Get recent blockhash
+        let recent_blockhash = self
+            .rpc_client
+            .get_latest_blockhash()
+            .map_err(|e| X402Error::SolanaError(format!("Failed to get blockhash: {}", e)))?;
+        
+        // 6. Create and sign transaction
+        let message = Message::new(&instructions, Some(&payer));
+        let mut transaction = SolanaTransaction::new_unsigned(message);
+        transaction.sign(&[from], recent_blockhash);
+        
+        println!("  ✅ Token transfer transaction created and signed");
+        
+        Ok(transaction)
     }
 
     /// Sign a transaction
