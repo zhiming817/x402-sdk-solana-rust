@@ -88,6 +88,17 @@ pub async fn check_payment(
             let payment_payload: PaymentPayload = serde_json::from_str(payment_str)
                 .map_err(|e| actix_web::error::ErrorBadRequest(e))?;
 
+            // Extract token information from config if available
+            let (token_address, token_decimals, token_name) = config.x402_config.as_ref()
+                .and_then(|c| c.svm_config.as_ref())
+                .and_then(|s| s.default_token.as_ref())
+                .map(|t| (
+                    Some(t.address.clone()),
+                    Some(t.decimals),
+                    Some(t.name.clone())
+                ))
+                .unwrap_or((None, None, None));
+
             // Verify payment with facilitator
             let handler = Handler::new(config.facilitator.clone());
             let requirements = PaymentRequirements {
@@ -96,9 +107,9 @@ pub async fn check_payment(
                 network: route_config.network.clone(),
                 max_amount_required: route_config.price.clone(),
                 pay_to: config.pay_to.clone(),
-                token_address: None,
-                token_decimals: None,
-                token_name: None,
+                token_address,
+                token_decimals,
+                token_name,
                 memo: route_config.description.clone(),
                 nonce: None,
             };
@@ -142,6 +153,17 @@ pub async fn settle_payment(
             let payment_payload: PaymentPayload = serde_json::from_str(payment_str)
                 .map_err(|e| actix_web::error::ErrorBadRequest(e))?;
 
+            // Extract token information from config if available
+            let (token_address, token_decimals, token_name) = config.x402_config.as_ref()
+                .and_then(|c| c.svm_config.as_ref())
+                .and_then(|s| s.default_token.as_ref())
+                .map(|t| (
+                    Some(t.address.clone()),
+                    Some(t.decimals),
+                    Some(t.name.clone())
+                ))
+                .unwrap_or((None, None, None));
+
             let handler = Handler::new(config.facilitator.clone());
             let requirements = PaymentRequirements {
                 x402_version: 1,
@@ -149,9 +171,9 @@ pub async fn settle_payment(
                 network: route_config.network.clone(),
                 max_amount_required: route_config.price.clone(),
                 pay_to: config.pay_to.clone(),
-                token_address: None,
-                token_decimals: None,
-                token_name: None,
+                token_address,
+                token_decimals,
+                token_name,
                 memo: route_config.description.clone(),
                 nonce: None,
             };

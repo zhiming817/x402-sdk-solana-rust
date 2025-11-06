@@ -101,15 +101,22 @@ impl TransactionBuilder {
         
         let mut instructions = Vec::new();
         
-        // 2. Check if sender has the token account
+        // 2. Check if sender has the token account; if missing, create it
         match self.rpc_client.get_account(&sender_ata) {
             Ok(_) => {
                 println!("  ✓ Sender ATA exists");
             }
-            Err(e) => {
-                return Err(X402Error::SolanaError(format!(
-                    "Sender doesn't have token account for this token. Please create it first. Error: {}", e
-                )));
+            Err(_) => {
+                println!("  ⚠️  Sender ATA doesn't exist, creating...");
+
+                // Create associated token account for sender (payer funds it)
+                let create_sender_ata_ix = spl_associated_token_account::instruction::create_associated_token_account(
+                    &payer,    // fee payer
+                    &payer,    // wallet/owner (sender)
+                    token_mint,
+                    &spl_token::id(),
+                );
+                instructions.push(create_sender_ata_ix);
             }
         }
         
