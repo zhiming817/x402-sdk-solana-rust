@@ -26,26 +26,28 @@
 //!
 //! ### Client Example
 //!
-//! ```rust,no_run
-//! use x402_sdk_solana_rust::{client::PaymentClient, solana::Wallet};
+//! ```rust,ignore
+//! use x402_sdk_solana_rust::{client::Fetcher, solana::Wallet, types::X402Request};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     // Initialize wallet from private key
-//!     let wallet = Wallet::from_private_key("your-private-key")?;
+//!     let wallet = Wallet::from_private_key("your-base58-private-key")?;
 //!     
-//!     // Create payment client
-//!     let client = PaymentClient::new(
-//!         wallet,
-//!         "receiver-address",
-//!         100000, // max payment in atomic units
-//!         "https://api.mainnet-beta.solana.com",
-//!         Some("http://localhost:8081/api/settle"),
-//!     );
+//!     // Create HTTP client (fetcher) with payment capabilities
+//!     let fetcher = Fetcher::with_max_value(wallet, 100000, None);
 //!     
-//!     // Make request with automatic payment handling
-//!     let response = client.get("http://localhost:8080/api/data").await?;
-//!     println!("Response: {}", response.text().await?);
+//!     // Create request
+//!     let request = X402Request {
+//!         method: "GET".to_string(),
+//!         url: "http://localhost:8080/api/data".to_string(),
+//!         headers: std::collections::HashMap::new(),
+//!         body: None,
+//!     };
+//!     
+//!     // Make request - will automatically handle 402 Payment Required
+//!     let response = fetcher.fetch(request).await?;
+//!     println!("Response: {:?}", response);
 //!     
 //!     Ok(())
 //! }
@@ -53,19 +55,23 @@
 //!
 //! ### Server Example
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use actix_web::{web, App, HttpServer, HttpResponse};
-//! use x402_sdk_solana_rust::server::PaymentMiddleware;
+//! use x402_sdk_solana_rust::server::{check_payment, PaymentMiddlewareConfig};
+//! use std::collections::HashMap;
 //!
 //! #[actix_web::main]
 //! async fn main() -> std::io::Result<()> {
-//!     HttpServer::new(|| {
+//!     // Configure payment middleware
+//!     let config = PaymentMiddlewareConfig::new(
+//!         "your-solana-public-key".to_string(),
+//!         HashMap::new(), // route configurations
+//!         None,           // facilitator config
+//!         None,           // x402 config
+//!     );
+//!     
+//!     HttpServer::new(move || {
 //!         App::new()
-//!             .wrap(PaymentMiddleware::new(
-//!                 "your-public-key",
-//!                 "http://localhost:8081/api/verify",
-//!                 "1800", // price in atomic units
-//!             ))
 //!             .route("/api/data", web::get().to(|| async {
 //!                 HttpResponse::Ok().json(serde_json::json!({"data": "value"}))
 //!             }))

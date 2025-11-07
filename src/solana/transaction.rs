@@ -5,9 +5,9 @@ use solana_sdk::{
     message::Message,
     pubkey::Pubkey,
     signature::{Keypair, Signature, Signer},
-    system_instruction,
     transaction::Transaction as SolanaTransaction,
 };
+use solana_system_interface::instruction as system_instruction;
 use std::str::FromStr;
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 
@@ -36,6 +36,7 @@ impl TransactionBuilder {
             .get_latest_blockhash()
             .map_err(|e| X402Error::SolanaError(format!("Failed to get blockhash: {}", e)))?;
 
+        // Solana 3.0: Use system_instruction from solana_system_interface crate
         let instruction = system_instruction::transfer(&from.pubkey(), to, amount_lamports);
 
         let message = Message::new(&[instruction], Some(&from.pubkey()));
@@ -87,19 +88,23 @@ impl TransactionBuilder {
         amount: u64,
         decimals: u8,
     ) -> Result<SolanaTransaction, X402Error> {
-        use spl_associated_token_account::get_associated_token_address;
-        use spl_token::instruction::transfer_checked;
-        
         let payer = from.pubkey();
+        let token_program_id = spl_token::ID;
         
-        // 1. Derive associated token accounts
-        let sender_ata = get_associated_token_address(&payer, token_mint);
-        let receiver_ata = get_associated_token_address(to_owner, token_mint);
+        // 1. Derive associated token accounts using Solana 3.0 compatible method
+        let sender_ata = spl_associated_token_account::get_associated_token_address(
+            &payer,
+            token_mint,
+        );
+        let receiver_ata = spl_associated_token_account::get_associated_token_address(
+            to_owner,
+            token_mint,
+        );
         
         println!("  💳 Sender ATA: {}", sender_ata);
         println!("  💳 Receiver ATA: {}", receiver_ata);
         
-        let mut instructions = Vec::new();
+        let mut instructions: Vec<Instruction> = Vec::new();
         
         // 2. Check if sender has the token account; if missing, create it
         match self.rpc_client.get_account(&sender_ata) {
@@ -109,12 +114,12 @@ impl TransactionBuilder {
             Err(_) => {
                 println!("  ⚠️  Sender ATA doesn't exist, creating...");
 
-                // Create associated token account for sender (payer funds it)
+                // Create ATA instruction for sender
                 let create_sender_ata_ix = spl_associated_token_account::instruction::create_associated_token_account(
-                    &payer,    // fee payer
-                    &payer,    // wallet/owner (sender)
-                    token_mint,
-                    &spl_token::id(),
+                    &payer,           // funding account
+                    &payer,           // wallet address (sender)
+                    token_mint,       // SPL Token mint
+                    &token_program_id, // Token program ID
                 );
                 instructions.push(create_sender_ata_ix);
             }
@@ -128,20 +133,20 @@ impl TransactionBuilder {
             Err(_) => {
                 println!("  ⚠️  Receiver ATA doesn't exist, creating...");
                 
-                // Create associated token account for receiver
+                // Create ATA instruction for receiver
                 let create_ata_ix = spl_associated_token_account::instruction::create_associated_token_account(
-                    &payer,           // fee payer
-                    to_owner,         // wallet address
-                    token_mint,       // token mint
-                    &spl_token::id(), // token program
+                    &payer,           // funding account
+                    to_owner,         // wallet address (receiver)
+                    token_mint,       // SPL Token mint
+                    &token_program_id, // Token program ID
                 );
                 instructions.push(create_ata_ix);
             }
         }
         
         // 4. Create transfer instruction
-        let transfer_ix = transfer_checked(
-            &spl_token::id(),  // token program
+        let transfer_ix = spl_token::instruction::transfer_checked(
+            &token_program_id, // token program
             &sender_ata,       // source
             token_mint,        // mint
             &receiver_ata,     // destination

@@ -17,12 +17,8 @@ impl Wallet {
 
     /// Create wallet from a base58 encoded private key
     pub fn from_private_key(private_key: &str) -> Result<Self, X402Error> {
-        let decoded = bs58::decode(private_key)
-            .into_vec()
-            .map_err(|e| X402Error::InvalidInput(format!("Failed to decode private key: {}", e)))?;
-        
-        let keypair = Keypair::from_bytes(&decoded)
-            .map_err(|e| X402Error::InvalidInput(format!("Invalid keypair bytes: {}", e)))?;
+        // Solana 3.0: Use from_base58_string instead of from_bytes
+        let keypair = Keypair::from_base58_string(private_key);
         
         Ok(Self { keypair })
     }
