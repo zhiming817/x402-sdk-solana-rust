@@ -6,6 +6,20 @@
 
 A Rust SDK for the X402 payment protocol on Solana, enabling pay-per-use APIs with automatic blockchain-based payment handling.
 
+## 🎥 Demo Video
+
+Watch a quick 1-minute demonstration of the complete payment flow:
+
+[![X402 Protocol Demo](https://img.youtube.com/vi/MIY5TWAqLM8/maxresdefault.jpg)](https://www.youtube.com/watch?v=MIY5TWAqLM8)
+
+**[▶️ Watch on YouTube](https://www.youtube.com/watch?v=MIY5TWAqLM8)**
+
+See the SDK in action with:
+- Facilitator service processing payments
+- Protected API server with payment requirements
+- Client automatically handling payments
+- Real transaction verification on Solana blockchain
+
 ## Overview
 
 X402 is a payment protocol that allows API providers to charge users on a per-request basis using blockchain payments. This SDK provides three main components:
